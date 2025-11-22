@@ -55,9 +55,9 @@
 				hoverBackgroundColor: chartColors.bar.hover.purple,
 				stack: 'stack0'
 			},
-			// Top stack: Anki (Memorization) in blue
+			// Top stack: Memorization in blue
 			{
-				label: 'Anki',
+				label: 'Memorization',
 				data: data.weeks.map((week) => week.anki_minutes),
 				backgroundColor: chartColors.bar.background.blue,
 				borderColor: chartColors.bar.border.blue,
