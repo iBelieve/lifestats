@@ -68,7 +68,8 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
     // Load all items with their associated places
     let items = load_all_items_with_places(export_path)?;
 
-    // Filter for visits at places containing "church" (case-insensitive)
+    // Filter for visits at places containing "church" and "luther" (case-insensitive)
+    // This includes Lutheran churches and "Martin Luther Church"
     // and calculate duration in minutes for each visit
     let mut church_visits: Vec<(DateTime<Utc>, f64)> = Vec::new();
 
@@ -78,13 +79,15 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
             continue;
         }
 
-        // Skip if no place or place name doesn't contain "church"
-        if let Some(place) = &item_with_place.place
-            && place.name.to_lowercase().contains("church") {
+        // Skip if no place or place name doesn't contain both "church" and "luther"
+        if let Some(place) = &item_with_place.place {
+            let name_lower = place.name.to_lowercase();
+            if name_lower.contains("church") && name_lower.contains("luther") {
                 let start = item_with_place.item.start_datetime();
                 let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
                 church_visits.push((start, duration_minutes));
             }
+        }
     }
 
     // Group visits by week and sum minutes
