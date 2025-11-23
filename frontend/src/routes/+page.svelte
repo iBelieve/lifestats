@@ -11,8 +11,8 @@
 	const { data } = $props();
 </script>
 
-<div class="container mx-auto p-8">
-	<h1 class="mb-8 text-3xl font-bold">Life Statistics</h1>
+<div class="container mx-auto py-8 md:px-8">
+	<h1 class="mb-8 text-3xl font-bold max-md:px-6">Life Statistics</h1>
 
 	<div class="grid grid-cols-1 gap-8 xl:grid-cols-2">
 		<Card title="Daily Study Time (Last 30 Days)">

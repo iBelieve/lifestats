@@ -9,7 +9,7 @@
 	let { title, children }: Props = $props();
 </script>
 
-<div class="rounded-lg bg-white shadow-md">
+<div class="border-gray-300 bg-white max-md:border-y md:rounded-lg md:shadow-md">
 	<div class="border-b border-gray-200 px-6 py-4">
 		<h2 class="text-lg font-medium">{title}</h2>
 	</div>
