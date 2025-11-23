@@ -75,10 +75,11 @@ fn main() {
                 let path = entry.path();
                 if path.is_file()
                     && let Some(filename) = path.file_name().and_then(|f| f.to_str())
-                        && filename.ends_with(".json") {
-                            let year_month = filename.trim_end_matches(".json");
-                            month_files.push(year_month.to_string());
-                        }
+                    && filename.ends_with(".json")
+                {
+                    let year_month = filename.trim_end_matches(".json");
+                    month_files.push(year_month.to_string());
+                }
             }
 
             month_files.sort();
