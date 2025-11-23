@@ -11,6 +11,10 @@
 	} from 'chart.js';
 	import type { BibleStats, BookStats } from '$lib/api/client';
 	import chartColors from '$lib/theme/chartColors';
+	import SegmentedControl from './SegmentedControl.svelte';
+
+	type ViewMode = 'verses' | 'passages';
+	let viewMode: ViewMode = $state('verses');
 
 	// Custom plugin to draw a vertical line between OT and NT
 	const testamentDividerPlugin = {
@@ -66,86 +70,105 @@
 		...data.new_testament.book_stats.map((book) => ({ ...book, testament: 'NT' as const }))
 	];
 
-	// Filter out books with no verses memorized
-	const hasVerses = (book: BookStats) =>
-		book.mature_verses > 0 || book.young_verses > 0 || book.learning_verses > 0;
+	// Filter out books with no data for the current view mode
+	const hasData = (book: BookStats, mode: ViewMode) => {
+		if (mode === 'verses') {
+			return book.mature_verses > 0 || book.young_verses > 0 || book.learning_verses > 0;
+		}
+		return book.mature_passages > 0 || book.young_passages > 0 || book.learning_passages > 0;
+	};
 
-	const combinedBooksWithVerses = combinedBooks.filter(hasVerses);
+	const combinedBooksFiltered = $derived(combinedBooks.filter((book) => hasData(book, viewMode)));
 
 	// Separate OT and NT books for mobile charts
-	const otBooksWithVerses = data.old_testament.book_stats.filter(hasVerses);
-	const ntBooksWithVerses = data.new_testament.book_stats.filter(hasVerses);
+	const otBooksFiltered = $derived(
+		data.old_testament.book_stats.filter((book) => hasData(book, viewMode))
+	);
+	const ntBooksFiltered = $derived(
+		data.new_testament.book_stats.filter((book) => hasData(book, viewMode))
+	);
 
 	// Find the index where NT books start (for the combined chart divider)
-	const ntStartIndex = combinedBooksWithVerses.findIndex((book) => book.testament === 'NT');
+	const ntStartIndex = $derived(combinedBooksFiltered.findIndex((book) => book.testament === 'NT'));
+
+	// Helper to get the appropriate value based on view mode
+	const getValue = (book: BookStats, field: 'mature' | 'young' | 'learning') => {
+		if (viewMode === 'verses') {
+			return book[`${field}_verses`];
+		}
+		return book[`${field}_passages`];
+	};
+
+	// Label for the current view mode
+	const unitLabel = $derived(viewMode === 'verses' ? 'verses' : 'passages');
 
 	// Transform data for Chart.js format (stacked bar chart) - Combined chart for desktop
 	const combinedChartData = $derived({
-		labels: combinedBooksWithVerses.map((book) => book.book),
+		labels: combinedBooksFiltered.map((book) => book.book),
 		datasets: [
-			// Bottom stack: Mature verses (darkest)
+			// Bottom stack: Mature (darkest)
 			{
 				label: 'Mature',
-				data: combinedBooksWithVerses.map((book) => book.mature_verses),
-				backgroundColor: combinedBooksWithVerses.map((book) =>
+				data: combinedBooksFiltered.map((book) => getValue(book, 'mature')),
+				backgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.mature
 						: chartColors.book.newTestament.mature
 				),
-				borderColor: combinedBooksWithVerses.map((book) =>
+				borderColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
 				),
 				stack: 'stack0'
 			},
-			// Middle stack: Young verses (medium shade)
+			// Middle stack: Young (medium shade)
 			{
 				label: 'Young',
-				data: combinedBooksWithVerses.map((book) => book.young_verses),
-				backgroundColor: combinedBooksWithVerses.map((book) =>
+				data: combinedBooksFiltered.map((book) => getValue(book, 'young')),
+				backgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.young
 						: chartColors.book.newTestament.young
 				),
-				borderColor: combinedBooksWithVerses.map((book) =>
+				borderColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
 				),
 				stack: 'stack0'
 			},
-			// Top stack: Learning verses (lightest shade)
+			// Top stack: Learning (lightest shade)
 			{
 				label: 'Learning',
-				data: combinedBooksWithVerses.map((book) => book.learning_verses),
-				backgroundColor: combinedBooksWithVerses.map((book) =>
+				data: combinedBooksFiltered.map((book) => getValue(book, 'learning')),
+				backgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.learning
 						: chartColors.book.newTestament.learning
 				),
-				borderColor: combinedBooksWithVerses.map((book) =>
+				borderColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksFiltered.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
@@ -155,7 +178,7 @@
 		]
 	});
 
-	const combinedOptions = {
+	const combinedOptions = $derived({
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
@@ -187,11 +210,11 @@
 					label: (context: { dataset: { label?: string }; parsed: { y: number | null } }) => {
 						const value = context.parsed.y ?? 0;
 						const label = context.dataset.label || '';
-						return `${label}: ${value} verses`;
+						return `${label}: ${value} ${unitLabel}`;
 					},
 					footer: (tooltipItems: Array<{ parsed: { y: number | null } }>) => {
 						const total = tooltipItems.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-						return `Total: ${total} verses`;
+						return `Total: ${total} ${unitLabel}`;
 					}
 				}
 			}
@@ -218,25 +241,26 @@
 				},
 				title: {
 					display: true,
-					text: 'Verses'
+					text: viewMode === 'verses' ? 'Verses' : 'Passages'
 				},
 				ticks: {
 					precision: 0
 				}
 			}
 		}
-	};
+	});
 
 	// Helper function to create chart data for a single testament
 	const createTestamentChartData = (
 		books: BookStats[],
-		colors: { mature: string; young: string; learning: string; border: string; hover: string }
+		colors: { mature: string; young: string; learning: string; border: string; hover: string },
+		mode: ViewMode
 	) => ({
 		labels: books.map((book) => book.book),
 		datasets: [
 			{
 				label: 'Mature',
-				data: books.map((book) => book.mature_verses),
+				data: books.map((book) => (mode === 'verses' ? book.mature_verses : book.mature_passages)),
 				backgroundColor: colors.mature,
 				borderColor: colors.border,
 				borderWidth: 1,
@@ -246,7 +270,7 @@
 			},
 			{
 				label: 'Young',
-				data: books.map((book) => book.young_verses),
+				data: books.map((book) => (mode === 'verses' ? book.young_verses : book.young_passages)),
 				backgroundColor: colors.young,
 				borderColor: colors.border,
 				borderWidth: 1,
@@ -256,7 +280,9 @@
 			},
 			{
 				label: 'Learning',
-				data: books.map((book) => book.learning_verses),
+				data: books.map((book) =>
+					mode === 'verses' ? book.learning_verses : book.learning_passages
+				),
 				backgroundColor: colors.learning,
 				borderColor: colors.border,
 				borderWidth: 1,
@@ -269,14 +295,14 @@
 
 	// Chart data for mobile split charts
 	const otChartData = $derived(
-		createTestamentChartData(otBooksWithVerses, chartColors.book.oldTestament)
+		createTestamentChartData(otBooksFiltered, chartColors.book.oldTestament, viewMode)
 	);
 	const ntChartData = $derived(
-		createTestamentChartData(ntBooksWithVerses, chartColors.book.newTestament)
+		createTestamentChartData(ntBooksFiltered, chartColors.book.newTestament, viewMode)
 	);
 
 	// Shared options for mobile split charts (no testament divider needed)
-	const createMobileOptions = () => ({
+	const mobileOptions = $derived({
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
@@ -290,11 +316,11 @@
 					label: (context: { dataset: { label?: string }; parsed: { y: number | null } }) => {
 						const value = context.parsed.y ?? 0;
 						const label = context.dataset.label || '';
-						return `${label}: ${value} verses`;
+						return `${label}: ${value} ${unitLabel}`;
 					},
 					footer: (tooltipItems: Array<{ parsed: { y: number | null } }>) => {
 						const total = tooltipItems.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
-						return `Total: ${total} verses`;
+						return `Total: ${total} ${unitLabel}`;
 					}
 				}
 			}
@@ -321,7 +347,7 @@
 				},
 				title: {
 					display: true,
-					text: 'Verses'
+					text: viewMode === 'verses' ? 'Verses' : 'Passages'
 				},
 				ticks: {
 					precision: 0
@@ -330,41 +356,65 @@
 		}
 	});
 
-	const otOptions = createMobileOptions();
-	const ntOptions = createMobileOptions();
+	// Calculate statistics based on view mode
+	const otLearning = $derived(
+		viewMode === 'verses'
+			? data.old_testament.learning_verses
+			: data.old_testament.learning_passages
+	);
+	const otYoung = $derived(
+		viewMode === 'verses' ? data.old_testament.young_verses : data.old_testament.young_passages
+	);
+	const otMature = $derived(
+		viewMode === 'verses' ? data.old_testament.mature_verses : data.old_testament.mature_passages
+	);
+	const otTotal = $derived(otLearning + otYoung + otMature);
 
-	// Calculate statistics
-	const otLearning = data.old_testament.learning_verses;
-	const otYoung = data.old_testament.young_verses;
-	const otMature = data.old_testament.mature_verses;
-	const otTotal = otLearning + otYoung + otMature;
+	const ntLearning = $derived(
+		viewMode === 'verses'
+			? data.new_testament.learning_verses
+			: data.new_testament.learning_passages
+	);
+	const ntYoung = $derived(
+		viewMode === 'verses' ? data.new_testament.young_verses : data.new_testament.young_passages
+	);
+	const ntMature = $derived(
+		viewMode === 'verses' ? data.new_testament.mature_verses : data.new_testament.mature_passages
+	);
+	const ntTotal = $derived(ntLearning + ntYoung + ntMature);
 
-	const ntLearning = data.new_testament.learning_verses;
-	const ntYoung = data.new_testament.young_verses;
-	const ntMature = data.new_testament.mature_verses;
-	const ntTotal = ntLearning + ntYoung + ntMature;
+	const totalLearning = $derived(otLearning + ntLearning);
+	const totalYoung = $derived(otYoung + ntYoung);
+	const totalMature = $derived(otMature + ntMature);
+	const grandTotal = $derived(totalLearning + totalYoung + totalMature);
 
-	const totalLearning = otLearning + ntLearning;
-	const totalYoung = otYoung + ntYoung;
-	const totalMature = otMature + ntMature;
-	const grandTotal = totalLearning + totalYoung + totalMature;
+	// Options for the segmented control
+	const viewModeOptions: Array<{ value: ViewMode; label: string }> = [
+		{ value: 'verses', label: 'Verses' },
+		{ value: 'passages', label: 'Passages' }
+	];
 </script>
+
+<!-- Toggle between verses and passages -->
+<div class="mb-4 flex justify-center">
+	<SegmentedControl options={viewModeOptions} bind:value={viewMode} />
+</div>
 
 <!-- Mobile: Split charts for OT and NT -->
 <div class="md:hidden">
-	{#if otBooksWithVerses.length > 0}
+	{#if otBooksFiltered.length > 0}
 		<div class="mb-6">
 			<h3 class="mb-2 text-center text-sm font-medium">Old Testament</h3>
 			<div class="h-48 w-full">
-				<Bar data={otChartData} options={otOptions} />
+				<Bar data={otChartData} options={mobileOptions} />
 			</div>
 		</div>
 	{/if}
-	{#if ntBooksWithVerses.length > 0}
+	{#if ntBooksFiltered.length > 0}
 		<div>
 			<h3 class="mb-2 text-center text-sm font-medium">New Testament</h3>
 			<div class="h-48 w-full">
-				<Bar data={ntChartData} options={ntOptions} />
+				<Bar data={ntChartData} options={mobileOptions} />
 			</div>
 		</div>
 	{/if}
