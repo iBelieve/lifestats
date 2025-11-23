@@ -68,7 +68,7 @@
 
 	// Filter out books with no verses memorized
 	const booksWithVerses = allBooks.filter(
-		(book) => book.mature_verses > 0 || book.young_verses > 0
+		(book) => book.mature_verses > 0 || book.young_verses > 0 || book.learning_verses > 0
 	);
 
 	// Find the index where NT books start (for the divider)
@@ -78,7 +78,7 @@
 	const chartData = $derived({
 		labels: booksWithVerses.map((book) => book.book),
 		datasets: [
-			// Bottom stack: Mature verses
+			// Bottom stack: Mature verses (darkest)
 			{
 				label: 'Mature',
 				data: booksWithVerses.map((book) => book.mature_verses),
@@ -101,7 +101,7 @@
 				),
 				stack: 'stack0'
 			},
-			// Top stack: Young verses (lighter shade)
+			// Middle stack: Young verses (medium shade)
 			{
 				label: 'Young',
 				data: booksWithVerses.map((book) => book.young_verses),
@@ -109,6 +109,29 @@
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.young
 						: chartColors.book.newTestament.young
+				),
+				borderColor: booksWithVerses.map((book) =>
+					book.testament === 'OT'
+						? chartColors.book.oldTestament.border
+						: chartColors.book.newTestament.border
+				),
+				borderWidth: 1,
+				borderRadius: 4,
+				hoverBackgroundColor: booksWithVerses.map((book) =>
+					book.testament === 'OT'
+						? chartColors.book.oldTestament.hover
+						: chartColors.book.newTestament.hover
+				),
+				stack: 'stack0'
+			},
+			// Top stack: Learning verses (lightest shade)
+			{
+				label: 'Learning',
+				data: booksWithVerses.map((book) => book.learning_verses),
+				backgroundColor: booksWithVerses.map((book) =>
+					book.testament === 'OT'
+						? chartColors.book.oldTestament.learning
+						: chartColors.book.newTestament.learning
 				),
 				borderColor: booksWithVerses.map((book) =>
 					book.testament === 'OT'
@@ -200,28 +223,73 @@
 	};
 
 	// Calculate statistics
+	const otLearning = data.old_testament.learning_verses;
 	const otYoung = data.old_testament.young_verses;
 	const otMature = data.old_testament.mature_verses;
-	const otTotal = otYoung + otMature;
+	const otTotal = otLearning + otYoung + otMature;
 
+	const ntLearning = data.new_testament.learning_verses;
 	const ntYoung = data.new_testament.young_verses;
 	const ntMature = data.new_testament.mature_verses;
-	const ntTotal = ntYoung + ntMature;
+	const ntTotal = ntLearning + ntYoung + ntMature;
 
+	const totalLearning = otLearning + ntLearning;
 	const totalYoung = otYoung + ntYoung;
 	const totalMature = otMature + ntMature;
-	const grandTotal = totalYoung + totalMature;
+	const grandTotal = totalLearning + totalYoung + totalMature;
 </script>
 
 <div class="h-64 w-full md:h-96">
 	<Bar data={chartData} {options} />
 </div>
 
-<div class="mt-6 flex justify-center">
+<!-- Mobile table: simplified with abbreviated labels -->
+<div class="mt-6 flex justify-center md:hidden">
+	<table class="w-full">
+		<thead>
+			<tr>
+				<th class="px-2 text-left"></th>
+				<th class="px-2 text-right">OT</th>
+				<th class="px-2 text-right">NT</th>
+				<th class="px-2 text-right">Total</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="px-2 py-1">Learning</td>
+				<td class="px-2 py-1 text-right">{otLearning}</td>
+				<td class="px-2 py-1 text-right">{ntLearning}</td>
+				<td class="px-2 py-1 text-right">{totalLearning}</td>
+			</tr>
+			<tr>
+				<td class="px-2 py-1">Young</td>
+				<td class="px-2 py-1 text-right">{otYoung}</td>
+				<td class="px-2 py-1 text-right">{ntYoung}</td>
+				<td class="px-2 py-1 text-right">{totalYoung}</td>
+			</tr>
+			<tr>
+				<td class="px-2 py-1">Mature</td>
+				<td class="px-2 py-1 text-right">{otMature}</td>
+				<td class="px-2 py-1 text-right">{ntMature}</td>
+				<td class="px-2 py-1 text-right">{totalMature}</td>
+			</tr>
+			<tr class="border-t border-gray-300">
+				<td class="px-2 py-1">Total</td>
+				<td class="px-2 py-1 text-right">{otTotal}</td>
+				<td class="px-2 py-1 text-right">{ntTotal}</td>
+				<td class="px-2 py-1 text-right">{grandTotal}</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+
+<!-- Desktop table: full labels -->
+<div class="mt-6 hidden justify-center md:flex">
 	<table>
 		<thead>
 			<tr>
 				<th class="px-4 text-left"></th>
+				<th class="px-4 text-right">Learning</th>
 				<th class="px-4 text-right">Young</th>
 				<th class="px-4 text-right">Mature</th>
 				<th class="px-4 text-right">Total</th>
@@ -230,18 +298,21 @@
 		<tbody>
 			<tr>
 				<td class="px-4 py-1">Old Testament</td>
+				<td class="px-4 py-1 text-right">{otLearning}</td>
 				<td class="px-4 py-1 text-right">{otYoung}</td>
 				<td class="px-4 py-1 text-right">{otMature}</td>
 				<td class="px-4 py-1 text-right">{otTotal}</td>
 			</tr>
 			<tr>
 				<td class="px-4 py-1">New Testament</td>
+				<td class="px-4 py-1 text-right">{ntLearning}</td>
 				<td class="px-4 py-1 text-right">{ntYoung}</td>
 				<td class="px-4 py-1 text-right">{ntMature}</td>
 				<td class="px-4 py-1 text-right">{ntTotal}</td>
 			</tr>
 			<tr class="border-t border-gray-300">
 				<td class="px-4 py-1">Total</td>
+				<td class="px-4 py-1 text-right">{totalLearning}</td>
 				<td class="px-4 py-1 text-right">{totalYoung}</td>
 				<td class="px-4 py-1 text-right">{totalMature}</td>
 				<td class="px-4 py-1 text-right">{grandTotal}</td>

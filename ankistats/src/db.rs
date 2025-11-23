@@ -106,14 +106,16 @@ pub fn get_all_books_stats(
 ) -> Result<HashMap<String, BookStats>> {
     let query = format!(
         r#"
-        SELECT 
+        SELECT
             book,
             SUM(CASE WHEN type='mature' THEN 1 ELSE 0 END) AS mature_passages,
             SUM(CASE WHEN type='young' THEN 1 ELSE 0 END) AS young_passages,
+            SUM(CASE WHEN type='learning' THEN 1 ELSE 0 END) AS learning_passages,
             SUM(CASE WHEN type='unseen' THEN 1 ELSE 0 END) AS unseen_passages,
             SUM(CASE WHEN type='suspended' THEN 1 ELSE 0 END) AS suspended_passages,
             SUM(CASE WHEN type='mature' THEN verses_count ELSE 0 END) AS mature_verses,
             SUM(CASE WHEN type='young' THEN verses_count ELSE 0 END) AS young_verses,
+            SUM(CASE WHEN type='learning' THEN verses_count ELSE 0 END) AS learning_verses,
             SUM(CASE WHEN type='unseen' THEN verses_count ELSE 0 END) AS unseen_verses,
             SUM(CASE WHEN type='suspended' THEN verses_count ELSE 0 END) AS suspended_verses
         FROM (
@@ -127,7 +129,9 @@ pub fn get_all_books_stats(
                         THEN 'unseen'
                     WHEN c0.ivl >= 21 AND c1.ivl >= 21
                         THEN 'mature'
-                    ELSE 'young'
+                    WHEN c0.ivl >= 7 AND c1.ivl >= 7
+                        THEN 'young'
+                    ELSE 'learning'
                     END as type
             FROM notes
             JOIN cards AS c0 ON c0.nid = notes.id AND c0.ord = 0 AND c0.did = ?2
@@ -149,12 +153,14 @@ pub fn get_all_books_stats(
                 book: book_name,
                 mature_passages: row.get(1).unwrap_or(0),
                 young_passages: row.get(2).unwrap_or(0),
-                unseen_passages: row.get(3).unwrap_or(0),
-                suspended_passages: row.get(4).unwrap_or(0),
-                mature_verses: row.get(5).unwrap_or(0),
-                young_verses: row.get(6).unwrap_or(0),
-                unseen_verses: row.get(7).unwrap_or(0),
-                suspended_verses: row.get(8).unwrap_or(0),
+                learning_passages: row.get(3).unwrap_or(0),
+                unseen_passages: row.get(4).unwrap_or(0),
+                suspended_passages: row.get(5).unwrap_or(0),
+                mature_verses: row.get(6).unwrap_or(0),
+                young_verses: row.get(7).unwrap_or(0),
+                learning_verses: row.get(8).unwrap_or(0),
+                unseen_verses: row.get(9).unwrap_or(0),
+                suspended_verses: row.get(10).unwrap_or(0),
             },
         ))
     })?;

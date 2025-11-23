@@ -78,17 +78,19 @@ fn run_books_command(db_path: &str) {
             println!("\n=== OLD TESTAMENT ===\n");
             print_book_stats(&stats.old_testament.book_stats);
             println!(
-                "\nOT Passages: Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "\nOT Passages: Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.old_testament.mature_passages,
                 stats.old_testament.young_passages,
+                stats.old_testament.learning_passages,
                 stats.old_testament.unseen_passages,
                 stats.old_testament.suspended_passages,
                 stats.old_testament.total_passages()
             );
             println!(
-                "OT Verses:   Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "OT Verses:   Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.old_testament.mature_verses,
                 stats.old_testament.young_verses,
+                stats.old_testament.learning_verses,
                 stats.old_testament.unseen_verses,
                 stats.old_testament.suspended_verses,
                 stats.old_testament.total_verses()
@@ -97,17 +99,19 @@ fn run_books_command(db_path: &str) {
             println!("\n\n=== NEW TESTAMENT ===\n");
             print_book_stats(&stats.new_testament.book_stats);
             println!(
-                "\nNT Passages: Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "\nNT Passages: Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.new_testament.mature_passages,
                 stats.new_testament.young_passages,
+                stats.new_testament.learning_passages,
                 stats.new_testament.unseen_passages,
                 stats.new_testament.suspended_passages,
                 stats.new_testament.total_passages()
             );
             println!(
-                "NT Verses:   Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "NT Verses:   Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.new_testament.mature_verses,
                 stats.new_testament.young_verses,
+                stats.new_testament.learning_verses,
                 stats.new_testament.unseen_verses,
                 stats.new_testament.suspended_verses,
                 stats.new_testament.total_verses()
@@ -115,17 +119,19 @@ fn run_books_command(db_path: &str) {
 
             println!("\n\n=== GRAND TOTAL ===");
             println!(
-                "Passages: Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "Passages: Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.total_mature_passages(),
                 stats.total_young_passages(),
+                stats.total_learning_passages(),
                 stats.total_unseen_passages(),
                 stats.total_suspended_passages(),
                 stats.total_passages()
             );
             println!(
-                "Verses:   Mature={}, Young={}, Unseen={}, Suspended={}, Total={}",
+                "Verses:   Mature={}, Young={}, Learning={}, Unseen={}, Suspended={}, Total={}",
                 stats.total_mature_verses(),
                 stats.total_young_verses(),
+                stats.total_learning_verses(),
                 stats.total_unseen_verses(),
                 stats.total_suspended_verses(),
                 stats.total_verses()

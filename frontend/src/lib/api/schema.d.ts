@@ -115,6 +115,10 @@ export interface components {
             book_stats: components["schemas"]["BookStats"][];
             label: string;
             /** Format: int64 */
+            learning_passages: number;
+            /** Format: int64 */
+            learning_verses: number;
+            /** Format: int64 */
             mature_passages: number;
             /** Format: int64 */
             mature_verses: number;
@@ -139,6 +143,10 @@ export interface components {
         /** @description Statistics for a single Bible book */
         BookStats: {
             book: string;
+            /** Format: int64 */
+            learning_passages: number;
+            /** Format: int64 */
+            learning_verses: number;
             /** Format: int64 */
             mature_passages: number;
             /** Format: int64 */

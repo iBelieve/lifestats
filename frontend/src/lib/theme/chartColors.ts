@@ -32,13 +32,15 @@ const chartColors = {
 	book: {
 		oldTestament: {
 			mature: colors.blue[600],
-			young: colors.blue[300],
+			young: colors.blue[400],
+			learning: colors.blue[200],
 			border: colors.blue[700],
 			hover: colors.blue[700]
 		},
 		newTestament: {
 			mature: colors.purple[600],
-			young: colors.purple[300],
+			young: colors.purple[400],
+			learning: colors.purple[200],
 			border: colors.purple[700],
 			hover: colors.purple[700]
 		}

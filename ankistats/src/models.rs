@@ -8,10 +8,12 @@ pub struct BookStats {
     pub book: String,
     pub mature_passages: i64,
     pub young_passages: i64,
+    pub learning_passages: i64,
     pub unseen_passages: i64,
     pub suspended_passages: i64,
     pub mature_verses: i64,
     pub young_verses: i64,
+    pub learning_verses: i64,
     pub unseen_verses: i64,
     pub suspended_verses: i64,
 }
@@ -28,6 +30,9 @@ pub struct BookStatsDisplay {
     #[tabled(rename = "Young")]
     pub young: String,
 
+    #[tabled(rename = "Learning")]
+    pub learning: String,
+
     #[tabled(rename = "Unseen")]
     pub unseen: String,
 
@@ -41,6 +46,7 @@ impl From<&BookStats> for BookStatsDisplay {
             book: stats.book.clone(),
             mature: format!("{} / {}", stats.mature_passages, stats.mature_verses),
             young: format!("{} / {}", stats.young_passages, stats.young_verses),
+            learning: format!("{} / {}", stats.learning_passages, stats.learning_verses),
             unseen: format!("{} / {}", stats.unseen_passages, stats.unseen_verses),
             suspended: format!("{} / {}", stats.suspended_passages, stats.suspended_verses),
         }
@@ -49,11 +55,19 @@ impl From<&BookStats> for BookStatsDisplay {
 
 impl BookStats {
     pub fn total_passages(&self) -> i64 {
-        self.mature_passages + self.young_passages + self.unseen_passages + self.suspended_passages
+        self.mature_passages
+            + self.young_passages
+            + self.learning_passages
+            + self.unseen_passages
+            + self.suspended_passages
     }
 
     pub fn total_verses(&self) -> i64 {
-        self.mature_verses + self.young_verses + self.unseen_verses + self.suspended_verses
+        self.mature_verses
+            + self.young_verses
+            + self.learning_verses
+            + self.unseen_verses
+            + self.suspended_verses
     }
 }
 
@@ -63,10 +77,12 @@ pub struct AggregateStats {
     pub label: String,
     pub mature_passages: i64,
     pub young_passages: i64,
+    pub learning_passages: i64,
     pub unseen_passages: i64,
     pub suspended_passages: i64,
     pub mature_verses: i64,
     pub young_verses: i64,
+    pub learning_verses: i64,
     pub unseen_verses: i64,
     pub suspended_verses: i64,
     pub book_stats: Vec<BookStats>,
@@ -78,10 +94,12 @@ impl AggregateStats {
             label,
             mature_passages: 0,
             young_passages: 0,
+            learning_passages: 0,
             unseen_passages: 0,
             suspended_passages: 0,
             mature_verses: 0,
             young_verses: 0,
+            learning_verses: 0,
             unseen_verses: 0,
             suspended_verses: 0,
             book_stats: Vec::new(),
@@ -91,21 +109,31 @@ impl AggregateStats {
     pub fn add_book(&mut self, stats: BookStats) {
         self.mature_passages += stats.mature_passages;
         self.young_passages += stats.young_passages;
+        self.learning_passages += stats.learning_passages;
         self.unseen_passages += stats.unseen_passages;
         self.suspended_passages += stats.suspended_passages;
         self.mature_verses += stats.mature_verses;
         self.young_verses += stats.young_verses;
+        self.learning_verses += stats.learning_verses;
         self.unseen_verses += stats.unseen_verses;
         self.suspended_verses += stats.suspended_verses;
         self.book_stats.push(stats);
     }
 
     pub fn total_passages(&self) -> i64 {
-        self.mature_passages + self.young_passages + self.unseen_passages + self.suspended_passages
+        self.mature_passages
+            + self.young_passages
+            + self.learning_passages
+            + self.unseen_passages
+            + self.suspended_passages
     }
 
     pub fn total_verses(&self) -> i64 {
-        self.mature_verses + self.young_verses + self.unseen_verses + self.suspended_verses
+        self.mature_verses
+            + self.young_verses
+            + self.learning_verses
+            + self.unseen_verses
+            + self.suspended_verses
     }
 }
 
@@ -132,6 +160,10 @@ impl BibleStats {
         self.old_testament.young_passages + self.new_testament.young_passages
     }
 
+    pub fn total_learning_passages(&self) -> i64 {
+        self.old_testament.learning_passages + self.new_testament.learning_passages
+    }
+
     pub fn total_unseen_passages(&self) -> i64 {
         self.old_testament.unseen_passages + self.new_testament.unseen_passages
     }
@@ -150,6 +182,10 @@ impl BibleStats {
 
     pub fn total_young_verses(&self) -> i64 {
         self.old_testament.young_verses + self.new_testament.young_verses
+    }
+
+    pub fn total_learning_verses(&self) -> i64 {
+        self.old_testament.learning_verses + self.new_testament.learning_verses
     }
 
     pub fn total_unseen_verses(&self) -> i64 {
