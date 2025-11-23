@@ -61,40 +61,45 @@
 		testament: 'OT' | 'NT';
 	}
 
-	const allBooks: BookWithTestament[] = [
+	const combinedBooks: BookWithTestament[] = [
 		...data.old_testament.book_stats.map((book) => ({ ...book, testament: 'OT' as const })),
 		...data.new_testament.book_stats.map((book) => ({ ...book, testament: 'NT' as const }))
 	];
 
 	// Filter out books with no verses memorized
-	const booksWithVerses = allBooks.filter(
-		(book) => book.mature_verses > 0 || book.young_verses > 0 || book.learning_verses > 0
-	);
+	const hasVerses = (book: BookStats) =>
+		book.mature_verses > 0 || book.young_verses > 0 || book.learning_verses > 0;
 
-	// Find the index where NT books start (for the divider)
-	const ntStartIndex = booksWithVerses.findIndex((book) => book.testament === 'NT');
+	const combinedBooksWithVerses = combinedBooks.filter(hasVerses);
 
-	// Transform data for Chart.js format (stacked bar chart)
-	const chartData = $derived({
-		labels: booksWithVerses.map((book) => book.book),
+	// Separate OT and NT books for mobile charts
+	const otBooksWithVerses = data.old_testament.book_stats.filter(hasVerses);
+	const ntBooksWithVerses = data.new_testament.book_stats.filter(hasVerses);
+
+	// Find the index where NT books start (for the combined chart divider)
+	const ntStartIndex = combinedBooksWithVerses.findIndex((book) => book.testament === 'NT');
+
+	// Transform data for Chart.js format (stacked bar chart) - Combined chart for desktop
+	const combinedChartData = $derived({
+		labels: combinedBooksWithVerses.map((book) => book.book),
 		datasets: [
 			// Bottom stack: Mature verses (darkest)
 			{
 				label: 'Mature',
-				data: booksWithVerses.map((book) => book.mature_verses),
-				backgroundColor: booksWithVerses.map((book) =>
+				data: combinedBooksWithVerses.map((book) => book.mature_verses),
+				backgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.mature
 						: chartColors.book.newTestament.mature
 				),
-				borderColor: booksWithVerses.map((book) =>
+				borderColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: booksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
@@ -104,20 +109,20 @@
 			// Middle stack: Young verses (medium shade)
 			{
 				label: 'Young',
-				data: booksWithVerses.map((book) => book.young_verses),
-				backgroundColor: booksWithVerses.map((book) =>
+				data: combinedBooksWithVerses.map((book) => book.young_verses),
+				backgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.young
 						: chartColors.book.newTestament.young
 				),
-				borderColor: booksWithVerses.map((book) =>
+				borderColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: booksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
@@ -127,20 +132,20 @@
 			// Top stack: Learning verses (lightest shade)
 			{
 				label: 'Learning',
-				data: booksWithVerses.map((book) => book.learning_verses),
-				backgroundColor: booksWithVerses.map((book) =>
+				data: combinedBooksWithVerses.map((book) => book.learning_verses),
+				backgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.learning
 						: chartColors.book.newTestament.learning
 				),
-				borderColor: booksWithVerses.map((book) =>
+				borderColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.border
 						: chartColors.book.newTestament.border
 				),
 				borderWidth: 1,
 				borderRadius: 4,
-				hoverBackgroundColor: booksWithVerses.map((book) =>
+				hoverBackgroundColor: combinedBooksWithVerses.map((book) =>
 					book.testament === 'OT'
 						? chartColors.book.oldTestament.hover
 						: chartColors.book.newTestament.hover
@@ -150,7 +155,7 @@
 		]
 	});
 
-	const options = {
+	const combinedOptions = {
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
@@ -222,6 +227,112 @@
 		}
 	};
 
+	// Helper function to create chart data for a single testament
+	const createTestamentChartData = (
+		books: BookStats[],
+		colors: { mature: string; young: string; learning: string; border: string; hover: string }
+	) => ({
+		labels: books.map((book) => book.book),
+		datasets: [
+			{
+				label: 'Mature',
+				data: books.map((book) => book.mature_verses),
+				backgroundColor: colors.mature,
+				borderColor: colors.border,
+				borderWidth: 1,
+				borderRadius: 4,
+				hoverBackgroundColor: colors.hover,
+				stack: 'stack0'
+			},
+			{
+				label: 'Young',
+				data: books.map((book) => book.young_verses),
+				backgroundColor: colors.young,
+				borderColor: colors.border,
+				borderWidth: 1,
+				borderRadius: 4,
+				hoverBackgroundColor: colors.hover,
+				stack: 'stack0'
+			},
+			{
+				label: 'Learning',
+				data: books.map((book) => book.learning_verses),
+				backgroundColor: colors.learning,
+				borderColor: colors.border,
+				borderWidth: 1,
+				borderRadius: 4,
+				hoverBackgroundColor: colors.hover,
+				stack: 'stack0'
+			}
+		]
+	});
+
+	// Chart data for mobile split charts
+	const otChartData = $derived(
+		createTestamentChartData(otBooksWithVerses, chartColors.book.oldTestament)
+	);
+	const ntChartData = $derived(
+		createTestamentChartData(ntBooksWithVerses, chartColors.book.newTestament)
+	);
+
+	// Shared options for mobile split charts (no testament divider needed)
+	const createMobileOptions = () => ({
+		responsive: true,
+		maintainAspectRatio: false,
+		plugins: {
+			testamentDivider: false,
+			legend: {
+				display: true,
+				position: 'top' as const
+			},
+			tooltip: {
+				callbacks: {
+					label: (context: { dataset: { label?: string }; parsed: { y: number | null } }) => {
+						const value = context.parsed.y ?? 0;
+						const label = context.dataset.label || '';
+						return `${label}: ${value} verses`;
+					},
+					footer: (tooltipItems: Array<{ parsed: { y: number | null } }>) => {
+						const total = tooltipItems.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0);
+						return `Total: ${total} verses`;
+					}
+				}
+			}
+		},
+		scales: {
+			x: {
+				stacked: true,
+				grid: {
+					display: false
+				},
+				ticks: {
+					maxRotation: 90,
+					minRotation: 45,
+					font: {
+						size: 10
+					}
+				}
+			},
+			y: {
+				stacked: true,
+				beginAtZero: true,
+				grid: {
+					color: chartColors.grid.gray
+				},
+				title: {
+					display: true,
+					text: 'Verses'
+				},
+				ticks: {
+					precision: 0
+				}
+			}
+		}
+	});
+
+	const otOptions = createMobileOptions();
+	const ntOptions = createMobileOptions();
+
 	// Calculate statistics
 	const otLearning = data.old_testament.learning_verses;
 	const otYoung = data.old_testament.young_verses;
@@ -239,8 +350,29 @@
 	const grandTotal = totalLearning + totalYoung + totalMature;
 </script>
 
-<div class="h-64 w-full md:h-96">
-	<Bar data={chartData} {options} />
+<!-- Mobile: Split charts for OT and NT -->
+<div class="md:hidden">
+	{#if otBooksWithVerses.length > 0}
+		<div class="mb-6">
+			<h3 class="mb-2 text-center text-sm font-medium">Old Testament</h3>
+			<div class="h-48 w-full">
+				<Bar data={otChartData} options={otOptions} />
+			</div>
+		</div>
+	{/if}
+	{#if ntBooksWithVerses.length > 0}
+		<div>
+			<h3 class="mb-2 text-center text-sm font-medium">New Testament</h3>
+			<div class="h-48 w-full">
+				<Bar data={ntChartData} options={ntOptions} />
+			</div>
+		</div>
+	{/if}
+</div>
+
+<!-- Desktop: Combined chart with testament divider -->
+<div class="hidden h-96 w-full md:block">
+	<Bar data={combinedChartData} options={combinedOptions} />
 </div>
 
 <!-- Mobile table: simplified with abbreviated labels -->
