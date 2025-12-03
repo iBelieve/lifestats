@@ -15,6 +15,9 @@ pub struct WeekStats {
     pub week_start: String,
     /// Time spent at church in minutes
     pub minutes: f64,
+    /// Daily breakdown: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday]
+    /// Index 0 = Sunday, Index 6 = Saturday
+    pub daily_minutes: Vec<f64>,
 }
 
 /// Statistics for a single place showing time spent
@@ -49,6 +52,24 @@ fn get_week_start_for_datetime(dt: DateTime<Utc>) -> String {
 
     // Format as YYYY-MM-DD
     week_start.format("%Y-%m-%d").to_string()
+}
+
+/// Gets day of week index (0=Sunday, 6=Saturday) for a datetime with 4 AM rollover
+fn get_day_of_week_index(dt: DateTime<Utc>) -> usize {
+    const ROLLOVER_HOUR: i64 = 4;
+
+    // Convert to Chicago timezone
+    let dt_chicago = dt.with_timezone(&Chicago);
+
+    // Apply 4 AM rollover: if before 4 AM, consider it part of previous day
+    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR as u32 {
+        dt_chicago - Duration::hours(24)
+    } else {
+        dt_chicago
+    };
+
+    // Get day of week (0=Sunday, 6=Saturday)
+    adjusted_dt.weekday().num_days_from_sunday() as usize
 }
 
 /// Gets church attendance statistics for the last 12 weeks
@@ -88,18 +109,35 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
         }
     }
 
-    // Group visits by week and sum minutes
-    let mut weekly_minutes: HashMap<String, f64> = HashMap::new();
+    // Track both total and daily breakdown per week
+    // HashMap<week_start, (total_minutes, [daily_minutes; 7])>
+    let mut weekly_data: HashMap<String, (f64, [f64; 7])> = HashMap::new();
 
     for (visit_time, minutes) in church_visits {
         let week_start = get_week_start_for_datetime(visit_time);
-        *weekly_minutes.entry(week_start).or_insert(0.0) += minutes;
+        let day_index = get_day_of_week_index(visit_time);
+
+        let entry = weekly_data.entry(week_start).or_insert((0.0, [0.0; 7]));
+        entry.0 += minutes; // Total minutes
+        entry.1[day_index] += minutes; // Daily breakdown
     }
 
     // Build results for all 12 weeks, filling gaps with 0 minutes
-    let results = period.build_results(weekly_minutes, |date, minutes| WeekStats {
-        week_start: date,
-        minutes,
+    let results = period.build_results(weekly_data, |date, (total, daily)| {
+        // Validation: sum of daily should equal total (within rounding tolerance)
+        debug_assert!(
+            (daily.iter().sum::<f64>() - total).abs() < 0.1,
+            "Daily sum doesn't match total for week {}: daily sum = {}, total = {}",
+            date,
+            daily.iter().sum::<f64>(),
+            total
+        );
+
+        WeekStats {
+            week_start: date,
+            minutes: total,
+            daily_minutes: daily.to_vec(),
+        }
     });
 
     Ok(results)
@@ -185,9 +223,12 @@ mod tests {
         let stats = WeekStats {
             week_start: "2025-10-19".to_string(),
             minutes: 120.5,
+            daily_minutes: vec![120.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         };
 
         assert_eq!(stats.week_start, "2025-10-19");
         assert_eq!(stats.minutes, 120.5);
+        assert_eq!(stats.daily_minutes.len(), 7);
+        assert_eq!(stats.daily_minutes[0], 120.5); // Sunday
     }
 }

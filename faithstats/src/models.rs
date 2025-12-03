@@ -211,6 +211,8 @@ pub struct FaithWeekStats {
     // Arc church attendance stats
     /// Time spent at church in minutes
     pub at_church_minutes: f64,
+    /// Daily church attendance breakdown: [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+    pub at_church_daily_minutes: Vec<f64>,
 
     // Prayer stats (future)
     /// Prayer time in minutes

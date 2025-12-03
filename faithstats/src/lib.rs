@@ -158,6 +158,7 @@ pub fn get_faith_weekly_stats(
                 anki_cumulative_passages: anki_week.cumulative_passages,
                 reading_minutes: reading_week.minutes,
                 at_church_minutes: church_week.minutes,
+                at_church_daily_minutes: church_week.daily_minutes,
                 prayer_minutes: prayer_week.minutes,
             },
         )

@@ -296,6 +296,8 @@ export interface components {
              * @description Anki study time in minutes
              */
             anki_minutes: number;
+            /** @description Daily church attendance breakdown: [Sun, Mon, Tue, Wed, Thu, Fri, Sat] */
+            at_church_daily_minutes: number[];
             /**
              * Format: double
              * @description Time spent at church in minutes
