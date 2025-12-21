@@ -8,10 +8,10 @@ use std::rc::Rc;
 pub struct Metadata {
     pub samples_completed: bool,
     pub export_mode: String,
-    pub session_start_date: f64,
+    pub session_start_date: String,
     pub items_completed: bool,
     pub export_type: String,
-    pub session_finish_date: f64,
+    pub session_finish_date: String,
     pub stats: ExportStats,
     pub schema_version: String,
     pub places_completed: bool,
@@ -37,8 +37,8 @@ pub struct Place {
     #[serde(rename = "radiusSD")]
     pub radius_sd: f64,
     pub visit_count: u32,
-    pub visit_days: u32,
-    pub last_saved: f64,
+    pub visit_days: Option<u32>,
+    pub last_saved: String,
     pub is_stale: bool,
     pub source: String,
     pub rtree_id: u32,
@@ -48,7 +48,7 @@ pub struct Place {
     pub country_code: Option<String>,
     pub google_place_id: Option<String>,
     pub google_primary_type: Option<String>,
-    pub last_visit_date: Option<f64>,
+    pub last_visit_date: Option<String>,
 }
 
 /// Item variant - either a visit or a trip
@@ -72,14 +72,15 @@ pub struct Item {
 #[serde(rename_all = "camelCase")]
 pub struct BaseItem {
     pub id: String,
-    pub start_date: f64,
-    pub end_date: f64,
-    pub last_saved: f64,
+    pub start_date: String,
+    pub end_date: String,
+    pub last_saved: String,
     pub source: String,
     pub source_version: Option<String>,
     pub is_visit: bool,
     pub deleted: bool,
     pub disabled: bool,
+    pub locked: bool,
     pub samples_changed: Option<bool>,
     pub step_count: Option<u32>,
     pub active_energy_burned: Option<f64>,
@@ -102,7 +103,7 @@ pub struct VisitDetails {
     pub radius_sd: f64,
     pub confirmed_place: bool,
     pub uncertain_place: bool,
-    pub last_saved: f64,
+    pub last_saved: String,
     pub street_address: Option<String>,
 }
 
@@ -116,7 +117,7 @@ pub struct TripDetails {
     pub classified_activity_type: Option<u32>,
     pub confirmed_activity_type: Option<u32>,
     pub uncertain_activity_type: bool,
-    pub last_saved: f64,
+    pub last_saved: String,
 }
 
 /// Parsed item with resolved place reference
@@ -147,41 +148,39 @@ impl Item {
 
     /// Get the start date as DateTime
     pub fn start_datetime(&self) -> DateTime<Utc> {
-        apple_timestamp_to_datetime(self.base.start_date)
+        parse_iso8601_timestamp(&self.base.start_date).expect("Invalid start_date timestamp")
     }
 
     /// Get the end date as DateTime
     pub fn end_datetime(&self) -> DateTime<Utc> {
-        apple_timestamp_to_datetime(self.base.end_date)
+        parse_iso8601_timestamp(&self.base.end_date).expect("Invalid end_date timestamp")
     }
 
     /// Get the duration in seconds
     pub fn duration_seconds(&self) -> f64 {
-        self.base.end_date - self.base.start_date
+        let start = self.start_datetime();
+        let end = self.end_datetime();
+        (end - start).num_milliseconds() as f64 / 1000.0
     }
 }
 
 impl Place {
     /// Get the last saved date as DateTime
     pub fn last_saved_datetime(&self) -> DateTime<Utc> {
-        apple_timestamp_to_datetime(self.last_saved)
+        parse_iso8601_timestamp(&self.last_saved).expect("Invalid last_saved timestamp")
     }
 
     /// Get the last visit date as DateTime if available
     pub fn last_visit_datetime(&self) -> Option<DateTime<Utc>> {
-        self.last_visit_date.map(apple_timestamp_to_datetime)
+        self.last_visit_date
+            .as_ref()
+            .map(|s| parse_iso8601_timestamp(s).expect("Invalid last_visit_date timestamp"))
     }
 }
 
-/// Convert Apple NSTimeInterval (seconds since 2001-01-01 00:00:00 UTC) to DateTime
-pub fn apple_timestamp_to_datetime(timestamp: f64) -> DateTime<Utc> {
-    // Apple's reference date is 2001-01-01 00:00:00 UTC
-    let apple_epoch = DateTime::parse_from_rfc3339("2001-01-01T00:00:00Z")
-        .unwrap()
-        .with_timezone(&Utc);
-
-    // Add the timestamp seconds to the epoch
-    apple_epoch + chrono::Duration::milliseconds((timestamp * 1000.0) as i64)
+/// Parse ISO 8601 timestamp string to DateTime<Utc>
+pub fn parse_iso8601_timestamp(timestamp: &str) -> Result<DateTime<Utc>, chrono::ParseError> {
+    DateTime::parse_from_rfc3339(timestamp).map(|dt| dt.with_timezone(&Utc))
 }
 
 #[cfg(test)]
@@ -190,13 +189,14 @@ mod tests {
     use chrono::Datelike;
 
     #[test]
-    fn test_apple_timestamp_conversion() {
-        // Test a known timestamp from the export data
-        // session_start_date: 782854313.455665 from metadata.json
-        let dt = apple_timestamp_to_datetime(782854313.455665);
+    fn test_iso8601_timestamp_parsing() {
+        // Test parsing ISO 8601 timestamp from the new format
+        let dt = parse_iso8601_timestamp("2025-12-20T22:20:04Z").expect("Failed to parse");
 
-        // This should be sometime in 2025
+        // This should be December 20, 2025
         assert_eq!(dt.year(), 2025);
+        assert_eq!(dt.month(), 12);
+        assert_eq!(dt.day(), 20);
     }
 
     #[test]
@@ -204,19 +204,20 @@ mod tests {
         let visit_item = Item {
             base: BaseItem {
                 id: "test-id".to_string(),
-                start_date: 778085854.759,
-                end_date: 778099244.398,
-                last_saved: 780692329.0,
-                source: "LocoKit".to_string(),
+                start_date: "2025-12-02T23:42:31Z".to_string(),
+                end_date: "2025-12-02T23:58:15Z".to_string(),
+                last_saved: "2025-12-03T02:10:04Z".to_string(),
+                source: "LocoKit2".to_string(),
                 source_version: Some("9.0.0".to_string()),
                 is_visit: true,
                 deleted: false,
                 disabled: false,
-                samples_changed: Some(true),
-                step_count: Some(779),
-                active_energy_burned: Some(91.36),
-                max_heart_rate: Some(121.0),
-                average_heart_rate: Some(88.56),
+                locked: false,
+                samples_changed: Some(false),
+                step_count: Some(252),
+                active_energy_burned: Some(29.79),
+                max_heart_rate: Some(133.0),
+                average_heart_rate: Some(92.11),
                 previous_item_id: None,
                 next_item_id: Some("next-id".to_string()),
             },
@@ -225,11 +226,11 @@ mod tests {
                 place_id: Some("place-id".to_string()),
                 latitude: 38.5,
                 longitude: -90.4,
-                radius_mean: 50.0,
-                radius_sd: 10.0,
+                radius_mean: 10.0,
+                radius_sd: 5.42,
                 confirmed_place: true,
                 uncertain_place: false,
-                last_saved: 780692328.841,
+                last_saved: "2025-12-02T23:58:02Z".to_string(),
                 street_address: Some("123 Main St".to_string()),
             }),
         };

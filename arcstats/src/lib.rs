@@ -34,6 +34,6 @@ pub use loader::{
 };
 pub use models::{
     BaseItem, ExportStats, Item, ItemWithPlace, Metadata, Place, TripDetails, VisitDetails,
-    apple_timestamp_to_datetime,
+    parse_iso8601_timestamp,
 };
 pub use stats::{WeekStats, get_last_12_weeks_stats};

@@ -196,11 +196,11 @@ mod tests {
     #[test]
     fn test_load_metadata() {
         let metadata = load_metadata(EXPORT_PATH).expect("Failed to load metadata");
-        assert_eq!(metadata.schema_version, "2.0.0");
+        assert_eq!(metadata.schema_version, "2.2.0");
         assert!(metadata.items_completed);
         assert!(metadata.places_completed);
-        assert_eq!(metadata.stats.item_count, 339);
-        assert_eq!(metadata.stats.place_count, 53);
+        assert_eq!(metadata.stats.item_count, 639);
+        assert_eq!(metadata.stats.place_count, 72);
     }
 
     #[test]
@@ -237,7 +237,7 @@ mod tests {
             .expect("Failed to load place");
 
         assert_eq!(place.name, "Home");
-        assert_eq!(place.visit_count, 70);
+        assert_eq!(place.visit_count, 119);
 
         // Verify caching works - should be cached now
         assert!(!cache.is_empty());
