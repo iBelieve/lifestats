@@ -9,8 +9,14 @@ use crate::loader::load_all_items_with_places;
 use crate::models::Place;
 use statsutils::DatePeriod;
 
+const MARTIN_LUTHER_CHURCH: &str = "Martin Luther Church";
+
 /// Checks if a place is a church based on Google place type or place name
 fn is_church(place: &Place) -> bool {
+    if place.name == MARTIN_LUTHER_CHURCH {
+        return true;
+    }
+
     if let Some(ref primary_type) = place.google_primary_type
         && primary_type == "church"
     {
@@ -19,6 +25,21 @@ fn is_church(place: &Place) -> bool {
 
     // Fallback: check if name contains "Church"
     place.name.contains("Church")
+}
+
+/// Checks if a visit time falls on a Sunday morning (4 AM–1 PM Chicago time).
+/// Uses the same 4 AM rollover as the rest of the module.
+fn is_sunday_morning(dt: DateTime<Utc>) -> bool {
+    let dt_chicago = dt.with_timezone(&Chicago);
+    let hour = dt_chicago.hour();
+
+    // Apply 4 AM rollover: before 4 AM counts as previous day
+    if hour < 4 {
+        return false; // Before rollover, so this is really Saturday night
+    }
+
+    // After rollover, check if it's Sunday and morning (before 1 PM)
+    dt_chicago.weekday() == chrono::Weekday::Sun && hour < 13
 }
 
 /// Weekly statistics for church attendance
@@ -111,13 +132,18 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
             continue;
         }
 
-        // Include visits to any church (identified by Google place type or name)
+        // Include church visits: Martin Luther Church any time,
+        // other churches only on Sunday mornings
         if let Some(place) = &item_with_place.place
             && is_church(place)
         {
             let start = item_with_place.item.start_datetime();
-            let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
-            church_visits.push((start, duration_minutes));
+            let is_martin_luther = place.name == MARTIN_LUTHER_CHURCH;
+
+            if is_martin_luther || is_sunday_morning(start) {
+                let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
+                church_visits.push((start, duration_minutes));
+            }
         }
     }
 
