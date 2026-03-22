@@ -6,7 +6,20 @@ use std::collections::HashMap;
 use utoipa::ToSchema;
 
 use crate::loader::load_all_items_with_places;
+use crate::models::Place;
 use statsutils::DatePeriod;
+
+/// Checks if a place is a church based on Google place type or place name
+fn is_church(place: &Place) -> bool {
+    if let Some(ref primary_type) = place.google_primary_type
+        && primary_type == "church"
+    {
+        return true;
+    }
+
+    // Fallback: check if name contains "Church"
+    place.name.contains("Church")
+}
 
 /// Weekly statistics for church attendance
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -89,8 +102,7 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
     // Load all items with their associated places
     let items = load_all_items_with_places(export_path)?;
 
-    // Filter for visits at "Martin Luther Church" only
-    // and calculate duration in minutes for each visit
+    // Filter for visits at any church and calculate duration in minutes for each visit
     let mut church_visits: Vec<(DateTime<Utc>, f64)> = Vec::new();
 
     for item_with_place in items {
@@ -99,9 +111,9 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
             continue;
         }
 
-        // Skip if no place or place name is not "Martin Luther Church"
+        // Include visits to any church (identified by Google place type or name)
         if let Some(place) = &item_with_place.place
-            && place.name == "Martin Luther Church"
+            && is_church(place)
         {
             let start = item_with_place.item.start_datetime();
             let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
