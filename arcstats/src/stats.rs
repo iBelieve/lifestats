@@ -6,7 +6,42 @@ use std::collections::HashMap;
 use utoipa::ToSchema;
 
 use crate::loader::load_all_items_with_places;
+use crate::models::Place;
 use statsutils::DatePeriod;
+
+const MARTIN_LUTHER_CHURCH: &str = "Martin Luther Church";
+const ROLLOVER_HOUR: u32 = 4;
+
+/// Checks if a place is a church based on Google place type or place name
+fn is_church(place: &Place) -> bool {
+    if place.name == MARTIN_LUTHER_CHURCH {
+        return true;
+    }
+
+    if let Some(ref primary_type) = place.google_primary_type
+        && primary_type == "church"
+    {
+        return true;
+    }
+
+    // Fallback: check if name contains "Church"
+    place.name.contains("Church")
+}
+
+/// Checks if a visit time falls on a Sunday morning (4 AM–1 PM Chicago time).
+/// Uses the same 4 AM rollover as the rest of the module.
+fn is_sunday_morning(dt: DateTime<Utc>) -> bool {
+    let dt_chicago = dt.with_timezone(&Chicago);
+    let hour = dt_chicago.hour();
+
+    // Apply 4 AM rollover: before 4 AM counts as previous day
+    if hour < ROLLOVER_HOUR {
+        return false; // Before rollover, so this is really Saturday night
+    }
+
+    // After rollover, check if it's Sunday and morning (before 1 PM)
+    dt_chicago.weekday() == chrono::Weekday::Sun && hour < 13
+}
 
 /// Weekly statistics for church attendance
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -32,13 +67,11 @@ pub struct PlaceStats {
 /// Converts a UTC datetime to a week start date string (YYYY-MM-DD)
 /// Applies 4 AM rollover and finds the most recent Sunday in Chicago timezone
 fn get_week_start_for_datetime(dt: DateTime<Utc>) -> String {
-    const ROLLOVER_HOUR: i64 = 4;
-
     // Convert to Chicago timezone
     let dt_chicago = dt.with_timezone(&Chicago);
 
     // Apply 4 AM rollover: if before 4 AM, consider it part of previous day
-    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR as u32 {
+    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR {
         dt_chicago - Duration::hours(24)
     } else {
         dt_chicago
@@ -56,13 +89,11 @@ fn get_week_start_for_datetime(dt: DateTime<Utc>) -> String {
 
 /// Gets day of week index (0=Sunday, 6=Saturday) for a datetime with 4 AM rollover
 fn get_day_of_week_index(dt: DateTime<Utc>) -> usize {
-    const ROLLOVER_HOUR: i64 = 4;
-
     // Convert to Chicago timezone
     let dt_chicago = dt.with_timezone(&Chicago);
 
     // Apply 4 AM rollover: if before 4 AM, consider it part of previous day
-    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR as u32 {
+    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR {
         dt_chicago - Duration::hours(24)
     } else {
         dt_chicago
@@ -89,8 +120,7 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
     // Load all items with their associated places
     let items = load_all_items_with_places(export_path)?;
 
-    // Filter for visits at "Martin Luther Church" only
-    // and calculate duration in minutes for each visit
+    // Filter for visits at any church and calculate duration in minutes for each visit
     let mut church_visits: Vec<(DateTime<Utc>, f64)> = Vec::new();
 
     for item_with_place in items {
@@ -99,13 +129,18 @@ pub fn get_last_12_weeks_stats(export_path: &str) -> Result<Vec<WeekStats>> {
             continue;
         }
 
-        // Skip if no place or place name is not "Martin Luther Church"
+        // Include church visits: Martin Luther Church any time,
+        // other churches only on Sunday mornings
         if let Some(place) = &item_with_place.place
-            && place.name == "Martin Luther Church"
+            && is_church(place)
         {
             let start = item_with_place.item.start_datetime();
-            let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
-            church_visits.push((start, duration_minutes));
+            let is_martin_luther = place.name == MARTIN_LUTHER_CHURCH;
+
+            if is_martin_luther || is_sunday_morning(start) {
+                let duration_minutes = item_with_place.item.duration_seconds() / 60.0;
+                church_visits.push((start, duration_minutes));
+            }
         }
     }
 

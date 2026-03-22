@@ -194,6 +194,7 @@ mod tests {
     const EXPORT_PATH: &str = "export";
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_metadata() {
         let metadata = load_metadata(EXPORT_PATH).expect("Failed to load metadata");
         assert_eq!(metadata.schema_version, "2.2.0");
@@ -204,6 +205,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_places_file() {
         // Test loading places starting with '0'
         let places = load_places_file(EXPORT_PATH, '0').expect("Failed to load places file");
@@ -216,6 +218,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_places_file_a() {
         // Test loading places starting with 'A'
         let places = load_places_file(EXPORT_PATH, 'A').expect("Failed to load places file");
@@ -228,6 +231,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_place_cache() {
         let mut cache = PlaceCache::new(EXPORT_PATH);
 
@@ -250,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_items_for_month() {
         let items = load_items_for_month(EXPORT_PATH, "2025-08").expect("Failed to load items");
         assert!(!items.is_empty());
@@ -260,6 +265,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_all_items() {
         let items = load_all_items(EXPORT_PATH).expect("Failed to load all items");
         assert!(!items.is_empty());
@@ -270,6 +276,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_load_items_with_places() {
         let items = load_items_with_places(EXPORT_PATH, "2025-08")
             .expect("Failed to load items with places");
@@ -288,6 +295,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires real export data
     fn test_place_sharing_across_items() {
         let items =
             load_all_items_with_places(EXPORT_PATH).expect("Failed to load all items with places");
