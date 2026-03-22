@@ -10,6 +10,7 @@ use crate::models::Place;
 use statsutils::DatePeriod;
 
 const MARTIN_LUTHER_CHURCH: &str = "Martin Luther Church";
+const ROLLOVER_HOUR: u32 = 4;
 
 /// Checks if a place is a church based on Google place type or place name
 fn is_church(place: &Place) -> bool {
@@ -34,7 +35,7 @@ fn is_sunday_morning(dt: DateTime<Utc>) -> bool {
     let hour = dt_chicago.hour();
 
     // Apply 4 AM rollover: before 4 AM counts as previous day
-    if hour < 4 {
+    if hour < ROLLOVER_HOUR {
         return false; // Before rollover, so this is really Saturday night
     }
 
@@ -66,13 +67,11 @@ pub struct PlaceStats {
 /// Converts a UTC datetime to a week start date string (YYYY-MM-DD)
 /// Applies 4 AM rollover and finds the most recent Sunday in Chicago timezone
 fn get_week_start_for_datetime(dt: DateTime<Utc>) -> String {
-    const ROLLOVER_HOUR: i64 = 4;
-
     // Convert to Chicago timezone
     let dt_chicago = dt.with_timezone(&Chicago);
 
     // Apply 4 AM rollover: if before 4 AM, consider it part of previous day
-    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR as u32 {
+    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR {
         dt_chicago - Duration::hours(24)
     } else {
         dt_chicago
@@ -90,13 +89,11 @@ fn get_week_start_for_datetime(dt: DateTime<Utc>) -> String {
 
 /// Gets day of week index (0=Sunday, 6=Saturday) for a datetime with 4 AM rollover
 fn get_day_of_week_index(dt: DateTime<Utc>) -> usize {
-    const ROLLOVER_HOUR: i64 = 4;
-
     // Convert to Chicago timezone
     let dt_chicago = dt.with_timezone(&Chicago);
 
     // Apply 4 AM rollover: if before 4 AM, consider it part of previous day
-    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR as u32 {
+    let adjusted_dt = if dt_chicago.hour() < ROLLOVER_HOUR {
         dt_chicago - Duration::hours(24)
     } else {
         dt_chicago
